@@ -1,7 +1,12 @@
+//Player Business Rule, run after comments changes
 (function executeRule(current, previous /*null when async*/) {
 
     var validDirections = ['face', 'turn', 'look'];
     var validSpeech = ['say', 'whisper', 'scream', 'shout'];
+    var validMoves = ['go', 'move', 'walk'];
+    var validMoveDirections = ['forward'];
+    var validX = [1, 10];
+    var validY = [1, 10];
 
     //directions
     var directions = {
@@ -14,19 +19,29 @@
     //speech
     var speech = {
         no_one_responds: ' something into the air but no one responds.',
+        no_input: 'Go on...'
     };
     //responses
     var responses = {
         "hello": 'Hello there :)',
         "help me": "You're smart, you can figure it out.",
         "how are you": "Quite well, thank you.",
-        "help": "No.",
+        "help": "Try things like move forward, face north, turn left.",
         "howdy": "There's a snake in my boot!"
+    };
+    //movement
+    var moves = {
+        bad_move: 'Where do you want to',
+        you_moved: 'You have moved forward',
+        bad_direction: 'Try forward',
+        up_or_down: 'You might want to change the way you are facing first.',
+        wall: 'You are facing a wall'
     };
 
     var newComment = current.comments.getJournalEntry(1).split('\n');
     var newCommand = newComment[1].split(' ');
-    var newInput = newComment[1].toString().slice(newCommand[0].length + 1).replace(/\b[-.,()&$?#!\[\]{}"']+\B|\B[-.,()&$#!\[\]{}"']+\b/g, "");
+    var newInput = newComment[1].toString().slice(newCommand[0].length + 1).trim().replace(/\b[-.,()&$?#!\[\]{}"']+\B|\B[-.,()&$#!\[\]{}"']+\b/g, "");
+    var commentToDM = newComment[1] + '';
     var adminComment = '';
 
     if (validDirections.indexOf(newCommand[0]) > -1) {
@@ -48,18 +63,38 @@
             }
         }
     } else if (validSpeech.indexOf(newCommand[0]) > -1) {
-        if (newInput in responses) {
-            buildComment(responses[newInput] + '');
-        } else if (newCommand[1]) {
-            buildComment('You ' + newCommand[0] + speech.no_one_responds + ' ');
+        if (newCommand[1]) {
+            buildCommentToAllHere(newCommand[0], newInput);
         } else {
-            buildComment('Go on...');
+            buildComment(speech.no_input);
         }
+    } else if (validMoves.indexOf(newCommand[0]) > -1) {
+        if (newCommand[1] && validMoveDirections.indexOf(newCommand[1]) == -1) {
+            buildComment(moves.bad_direction);
+        } else if (newCommand[1] && validMoveDirections.indexOf(newCommand[1]) > -1) {
+            newMove(newCommand[1]);
+            //buildComment(moves.you_moved, newCommand[1]);
+        } else {
+            buildComment(moves.bad_move, newCommand[0], '', '?');
+        }
+    } else {
+        if (commentToDM in responses) buildComment(responses[commentToDM] + '');
     }
 
-    function buildComment(text, variable) {
-        if (variable) {
-            adminComment = text + ' ' + variable;
+    //
+    //begin functions
+    //
+
+    function buildComment(text, variable, before, after) {
+        if (variable || before || after) {
+            if (!variable) variable = '';
+            if (before) {
+                before += ' ';
+            } else {
+                before = '';
+            }
+            if (!after) after = '';
+            adminComment = before + text + ' ' + variable + ' ' + after;
         } else {
             adminComment = text;
         }
@@ -70,6 +105,7 @@
         var gr2 = new GlideRecord('u_404_adventure');
         gr2.get(currentID);
         gr2.comments.setJournalEntry(adminComment, 'u_404_dm');
+        //gr2.setWorkflow(false);
         gr2.update();
     }
 
@@ -91,6 +127,79 @@
             }
         }
         return newDirection;
+    }
+
+    function newMove(direction) {
+        var u_x = current.u_x;
+        var u_y = current.u_y;
+        var u_direction = current.u_direction + '';
+        var hit_wall = false;
+        if (u_direction == 'north') {
+            if (u_y + 1 > validY[1]) {
+                hit_wall = true;
+            } else {
+                pushCoordsY(u_y + 1);
+                buildComment(moves.you_moved);
+            }
+        } else if (u_direction == 'south') {
+            if (u_y - 1 < validY[0]) {
+                hit_wall = true;
+            } else {
+                pushCoordsY(u_y - 1);
+                buildComment(moves.you_moved);
+            }
+        } else if (u_direction == 'west') {
+            if (u_x - 1 < validX[0]) {
+                hit_wall = true;
+            } else {
+                pushCoordsX(u_x - 1);
+                buildComment(moves.you_moved);
+            }
+        } else if (u_direction == 'east') {
+            if (u_x + 1 > validX[1]) {
+                hit_wall = true;
+            } else {
+                pushCoordsX(u_x + 1);
+                buildComment(moves.you_moved);
+            }
+        } else {
+            buildComment(moves.up_or_down);
+        }
+        if (hit_wall) buildComment(moves.wall);
+    }
+
+    function pushCoordsY(newCoord) {
+        current.u_y = newCoord;
+        checkForOthers();
+    }
+
+    function pushCoordsX(newCoord) {
+        current.u_x = newCoord;
+        checkForOthers();
+    }
+
+    function checkForOthers() {
+        var grCheckCoord = new GlideRecord('u_404_adventure');
+        grCheckCoord.addQuery('u_user', '!=', current.u_user);
+        grCheckCoord.addQuery('u_x', current.u_x);
+        grCheckCoord.addQuery('u_y', current.u_y);
+        grCheckCoord.query();
+
+        if (grCheckCoord.getRowCount() > 0) {
+            buildComment('Someone else is here');
+        }
+    }
+
+    function buildCommentToAllHere(how, message) {
+        var grCommentToAllHere = new GlideRecord('u_404_adventure');
+        grCommentToAllHere.addQuery('u_user', '!=', current.u_user);
+        grCommentToAllHere.addQuery('u_x', current.u_x);
+        grCommentToAllHere.addQuery('u_y', current.u_y);
+        grCommentToAllHere.query();
+        while (grCommentToAllHere.next()) {
+            grCommentToAllHere.comments.setJournalEntry(how + 's ' + message, current.u_user.user_name);
+            grCommentToAllHere.update();
+        }
     }
 
 })(current, previous);
