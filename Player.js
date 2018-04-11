@@ -43,6 +43,7 @@
     var newInput = newComment[1].toString().slice(newCommand[0].length + 1).trim().replace(/\b[-.,()&$?#!\[\]{}"']+\B|\B[-.,()&$#!\[\]{}"']+\b/g, "");
     var commentToDM = newComment[1] + '';
     var adminComment = '';
+    var isCommand = true;
 
     if (validDirections.indexOf(newCommand[0]) > -1) {
         if (current.u_direction == newCommand[1]) {
@@ -80,6 +81,13 @@
         }
     } else {
         if (commentToDM in responses) buildComment(responses[commentToDM] + '');
+        isCommand = false;
+    }
+
+    if (isCommand) {
+        PushToCommandLogs(newCommand[0], newInput, commentToDM);
+    } else {
+        PushToCommandLogs('', '', commentToDM);
     }
 
     //
@@ -202,8 +210,35 @@
         grCommentToAllHere.query();
         if (grCommentToAllHere.getRowCount() == 0) buildComment(speech.no_one_responds);
         while (grCommentToAllHere.next()) {
+            //grCommentToAllHere.setWorkflow(false);
             grCommentToAllHere.comments.setJournalEntry(how + 's ' + message, current.u_user.user_name);
             grCommentToAllHere.update();
+        }
+    }
+
+    function PushToCommandLogs(command, input, comment) {
+        if (validSpeech.indexOf(comment.split(' ')[0].slice(0, -1)) > -1) return;
+        var usersysid = gs.getUserID();
+        var grlogs = new GlideRecord('u_404_command_logs');
+        grlogs.addQuery('u_command', command);
+        grlogs.addQuery('u_input', input);
+        grlogs.addQuery('u_full_input', comment);
+        grlogs.addQuery('u_user', usersysid);
+        grlogs.query();
+
+        if (grlogs.getRowCount() == 0) {
+            var grlogscreate = new GlideRecord('u_404_command_logs');
+            grlogscreate.initialize();
+            grlogscreate.u_user = usersysid;
+            grlogscreate.u_command = command;
+            grlogscreate.u_input = input;
+            grlogscreate.u_full_input = comment;
+            grlogscreate.u_times = 1;
+            grlogscreate.insert();
+        } else {
+            grlogs.next();
+            grlogs.u_times++;
+            grlogs.update();
         }
     }
 
