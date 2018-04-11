@@ -5,8 +5,8 @@
     var validSpeech = ['say', 'whisper', 'scream', 'shout'];
     var validMoves = ['go', 'move', 'walk'];
     var validMoveDirections = ['forward'];
-    var validX = [1, 10];
-    var validY = [1, 10];
+    var validX = [1, 10]; //width of area
+    var validY = [1, 10]; //length of area
 
     //directions
     var directions = {
@@ -18,15 +18,15 @@
     };
     //speech
     var speech = {
-        no_one_responds: ' something into the air but no one responds.',
+        no_one_responds: 'No one seems to hear you.',
         no_input: 'Go on...'
     };
     //responses
     var responses = {
         "hello": 'Hello there :)',
-        "help me": "You're smart, you can figure it out.",
+        "help me": "Try things like:\nmove forward\nface north\nturn left\nsay hello.",
         "how are you": "Quite well, thank you.",
-        "help": "Try things like move forward, face north, turn left.",
+        "help": "Try things like:\nmove forward\nface north\nturn left\nsay hello.",
         "howdy": "There's a snake in my boot!"
     };
     //movement
@@ -47,7 +47,7 @@
     if (validDirections.indexOf(newCommand[0]) > -1) {
         if (current.u_direction == newCommand[1]) {
             buildComment(directions.already_facing);
-        } else if ((current.u_direction == 'up' || current.u_direction == 'down') && (newCommand[1] == 'left' || newCommand[1] == 'right')) {
+        } else if ((current.u_direction == 'up' || current.u_direction == 'down') && (newCommand[1] == 'left' || newCommand[1] == 'right' || newCommand[1] == 'around')) {
             buildComment(directions.spin_around, current.u_direction.toString());
         } else {
             switch (newCommand[1]) {
@@ -59,6 +59,7 @@
                 case 'down': current.u_direction = 'down'; buildComment(directions.new_facing, newCommand[1]); break;
                 case 'left': current.u_direction = newCompassDirection(current.u_direction.toString(), 'left'); buildComment(directions.you_turned, newCommand[1]); break;
                 case 'right': current.u_direction = newCompassDirection(current.u_direction.toString(), 'right'); buildComment(directions.you_turned, newCommand[1]); break;
+                case 'around': current.u_direction = newCompassDirection(current.u_direction.toString(), 'around'); buildComment(directions.you_turned, newCommand[1]); break;
                 default: buildComment(directions.bad_direction, newCommand[1]);
             }
         }
@@ -87,14 +88,10 @@
 
     function buildComment(text, variable, before, after) {
         if (variable || before || after) {
-            if (!variable) variable = '';
-            if (before) {
-                before += ' ';
-            } else {
-                before = '';
-            }
-            if (!after) after = '';
-            adminComment = before + text + ' ' + variable + ' ' + after;
+            if (!variable) { variable = ''; } else { variable = ' ' + variable; }
+            if (before) { before += ' '; } else { before = ''; }
+            if (!after) { after = ''; } else { after = ' ' + after; }
+            adminComment = before + text + variable + after;
         } else {
             adminComment = text;
         }
@@ -124,6 +121,13 @@
                 case 'east': newDirection = 'south'; break;
                 case 'south': newDirection = 'west'; break;
                 case 'west': newDirection = 'north'; break;
+            }
+        } else if (turnDirection == 'around') {
+            switch (currentDirection) {
+                case 'north': newDirection = 'south'; break;
+                case 'east': newDirection = 'west'; break;
+                case 'south': newDirection = 'north'; break;
+                case 'west': newDirection = 'east'; break;
             }
         }
         return newDirection;
@@ -196,6 +200,7 @@
         grCommentToAllHere.addQuery('u_x', current.u_x);
         grCommentToAllHere.addQuery('u_y', current.u_y);
         grCommentToAllHere.query();
+        if (grCommentToAllHere.getRowCount() == 0) buildComment(speech.no_one_responds);
         while (grCommentToAllHere.next()) {
             grCommentToAllHere.comments.setJournalEntry(how + 's ' + message, current.u_user.user_name);
             grCommentToAllHere.update();
