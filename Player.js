@@ -20,8 +20,11 @@
     var speech = {
         no_one_responds: 'No one seems to hear you.',
         no_input: 'Go on...',
-        listeners: ' are around you but it only seems that ',
-        listeners2: ' may be here today to hear you.'
+        listeners_one_active: 'One person is around you and may be here today to hear you.',
+        listeners_one_inactive: 'One person is around you but may not be here today to hear you.',
+        listeners_many: ' are around you but only ',
+        listeners2: ' may be here today to hear you.',
+        listeners2_none: 'are around you but may not be here today to hear you.'
     };
     //responses
     var responses = {
@@ -92,20 +95,25 @@
         PushToCommandLogs('', '', commentToDM);
     }
 
+    sendComment();
+
     //
     //begin functions
     //
 
     function buildComment(text, variable, before, after) {
+        if (!adminComment == '') adminComment += '\n';
         if (variable || before || after) {
             if (!variable) { variable = ''; } else { variable = ' ' + variable; }
             if (before) { before += ' '; } else { before = ''; }
             if (!after) { after = ''; } else { after = ' ' + after; }
-            adminComment = before + text + variable + after;
+            adminComment += before + text + variable + after;
         } else {
-            adminComment = text;
+            adminComment += text;
         }
+    }
 
+    function sendComment() {
         var currentID = current.sys_id;
         current.update();
 
@@ -152,29 +160,29 @@
             if (u_y + 1 > validY[1]) {
                 hit_wall = true;
             } else {
-                pushCoordsY(u_y + 1);
                 buildComment(moves.you_moved);
+                pushCoordsY(u_y + 1);
             }
         } else if (u_direction == 'south') {
             if (u_y - 1 < validY[0]) {
                 hit_wall = true;
             } else {
-                pushCoordsY(u_y - 1);
                 buildComment(moves.you_moved);
+                pushCoordsY(u_y - 1);
             }
         } else if (u_direction == 'west') {
             if (u_x - 1 < validX[0]) {
                 hit_wall = true;
             } else {
-                pushCoordsX(u_x - 1);
                 buildComment(moves.you_moved);
+                pushCoordsX(u_x - 1);
             }
         } else if (u_direction == 'east') {
             if (u_x + 1 > validX[1]) {
                 hit_wall = true;
             } else {
-                pushCoordsX(u_x + 1);
                 buildComment(moves.you_moved);
+                pushCoordsX(u_x + 1);
             }
         } else {
             buildComment(moves.up_or_down);
@@ -223,7 +231,15 @@
             grCommentToAllHere.addEncodedQuery("u_user.last_login_timeONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()");
             grCommentToAllHere.query();
             var all_active = grCommentToAllHere.getRowCount();
-            buildComment(all_here + speech.listeners + all_active + speech.listeners2);
+            if (all_here == 1 && all_active == 0) {
+                buildComment(speech.listeners_one_inactive);
+            } else if (all_here == 1 && all_active == 1) {
+                buildComment(speech.listeners_one_active);
+            } else if (all_here > 1 && all_active == 0) {
+                buildComment(all_here + speech.listeners2_none);
+            } else if (all_here > 1 && all_active > 0) {
+                buildComment(all_here + speech.listeners_many + all_active + speech.listeners2);
+            }
         }
     }
 
