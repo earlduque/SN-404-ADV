@@ -19,7 +19,9 @@
     //speech
     var speech = {
         no_one_responds: 'No one seems to hear you.',
-        no_input: 'Go on...'
+        no_input: 'Go on...',
+        listeners: ' are around you but it only seems that ',
+        listeners2: ' may be here today to hear you.'
     };
     //responses
     var responses = {
@@ -208,11 +210,20 @@
         grCommentToAllHere.addQuery('u_x', current.u_x);
         grCommentToAllHere.addQuery('u_y', current.u_y);
         grCommentToAllHere.query();
-        if (grCommentToAllHere.getRowCount() == 0) buildComment(speech.no_one_responds);
         while (grCommentToAllHere.next()) {
             //grCommentToAllHere.setWorkflow(false);
             grCommentToAllHere.comments.setJournalEntry(how + 's ' + message, current.u_user.user_name);
             grCommentToAllHere.update();
+        }
+        var all_here = grCommentToAllHere.getRowCount();
+        if (all_here == 0) {
+            buildComment(speech.no_one_responds);
+        } else if (current.u_all_here == false) {
+            current.u_all_here = 'true';
+            grCommentToAllHere.addEncodedQuery("u_user.last_login_timeONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()");
+            grCommentToAllHere.query();
+            var all_active = grCommentToAllHere.getRowCount();
+            buildComment(all_here + speech.listeners + all_active + speech.listeners2);
         }
     }
 
