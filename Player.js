@@ -5,6 +5,7 @@
     var validSpeech = ['say', 'whisper', 'scream', 'shout'];
     var validMoves = ['go', 'move', 'walk'];
     var validMoveDirections = ['forward'];
+    var validPickUp = ['pick', 'grab', 'take', 'hold'];
     var validX = [1, 10]; //width of area
     var validY = [1, 10]; //length of area
 
@@ -24,7 +25,7 @@
         listeners_one_inactive: 'One person is around you but may not be here today to hear you.',
         listeners_many: ' are around you but only ',
         listeners2: ' may be here today to hear you.',
-        listeners2_none: 'are around you but may not be here today to hear you.'
+        listeners2_none: ' are around you but may not be here today to hear you.'
     };
     //responses
     var responses = {
@@ -41,6 +42,13 @@
         bad_direction: 'Try forward',
         up_or_down: 'You might want to change the way you are facing first.',
         wall: 'You are facing a wall'
+    };
+    //interaction
+    var interact = {
+        bad_grab: 'What do you want to take?',
+        invalid_object: 'There is not one of those to take.',
+        took: 'You took a ',
+        already_have: 'You already have that '
     };
 
     var newComment = current.comments.getJournalEntry(1).split('\n');
@@ -84,6 +92,13 @@
         } else {
             buildComment(moves.bad_move, newCommand[0], '', '?');
         }
+    } else if (validPickUp.indexOf(newCommand[0]) > -1) {
+        if (newCommand[1] == 'up') newCommand.splice(1, 1);
+        if (newCommand[1]) {
+            checkForObjectToTake(newCommand[1]);
+        } else {
+            buildComment(interact.bad_grab);
+        }
     } else {
         if (commentToDM in responses) buildComment(responses[commentToDM] + '');
         isCommand = false;
@@ -102,7 +117,7 @@
     //
 
     function buildComment(text, variable, before, after) {
-        if (!adminComment == '') adminComment += '\n';
+        if (adminComment != '') adminComment += '\n';
         if (variable || before || after) {
             if (!variable) { variable = ''; } else { variable = ' ' + variable; }
             if (before) { before += ' '; } else { before = ''; }
@@ -193,11 +208,13 @@
     function pushCoordsY(newCoord) {
         current.u_y = newCoord;
         checkForOthers();
+        checkForObjects();
     }
 
     function pushCoordsX(newCoord) {
         current.u_x = newCoord;
         checkForOthers();
+        checkForObjects();
     }
 
     function checkForOthers() {
@@ -209,6 +226,60 @@
 
         if (grCheckCoord.getRowCount() > 0) {
             buildComment('Someone else is here');
+        }
+    }
+
+    function checkForObjects() {
+        var grCheckObjects = new GlideRecord('u_404_objects');
+        grCheckObjects.addNullQuery('u_user');
+        grCheckObjects.addQuery('u_active', true);
+        grCheckObjects.addQuery('u_x', current.u_x);
+        grCheckObjects.addQuery('u_y', current.u_y);
+        grCheckObjects.query();
+        while (grCheckObjects.next()) {
+            buildComment('A ' + grCheckObjects.u_object_name + ' is on the floor');
+        }
+    }
+
+    function checkForObjectToTake(object_name) {
+        var grValidObject = new GlideRecord('u_404_objects');
+        grValidObject.addNullQuery('u_user');
+        grValidObject.addQuery('u_object_name', object_name);
+        grValidObject.addQuery('u_x', current.u_x);
+        grValidObject.addQuery('u_y', current.u_y);
+        grValidObject.query();
+
+        var grDuplicateItem = new GlideRecord('u_404_objects');
+        grDuplicateItem.addQuery('u_user', gs.getUserID());
+        grDuplicateItem.addQuery('u_object_name', grValidObject.u_object_name);
+        grDuplicateItem.addQuery('u_object_instance', grValidObject.u_object_instance);
+        grDuplicateItem.query();
+
+        if (grValidObject.next()) {
+
+            var grDuplicateItem = new GlideRecord('u_404_objects');
+            grDuplicateItem.addQuery('u_user', gs.getUserID());
+            grDuplicateItem.addQuery('u_object_name', grValidObject.u_object_name);
+            grDuplicateItem.addQuery('u_object_instance', grValidObject.u_object_instance);
+            grDuplicateItem.query();
+
+            if (grDuplicateItem.getRowCount() > 0) {
+                buildComment(interact.already_have + object_name);
+            } else {
+                var grCreateObject = new GlideRecord('u_404_objects');
+                grCreateObject.initialize();
+                grCreateObject.u_user = gs.getUserID();
+                grCreateObject.u_object_name = grValidObject.u_object_name;
+                grCreateObject.u_x = grValidObject.u_x;
+                grCreateObject.u_y = grValidObject.u_y;
+                grCreateObject.u_object_instance = grValidObject.u_object_instance;
+                grCreateObject.u_game = grValidObject.u_game;
+                grCreateObject.u_active = true;
+                grCreateObject.insert();
+                buildComment(interact.took + object_name);
+            }
+        } else {
+            buildComment(interact.invalid_object);
         }
     }
 
