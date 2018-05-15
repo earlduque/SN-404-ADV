@@ -29,7 +29,7 @@
     };
     //responses
     var responses = {
-        "hello": 'Hello there :)',
+        "hello": 'Hello there :), if you are trying to talk to other people, you have to indicate so',
         "help me": "Try things like:\nmove forward\nface north\nturn left\nsay hello.",
         "how are you": "Quite well, thank you.",
         "help": "Try things like:\nmove forward\nface north\nturn left\nsay hello.",
