@@ -40,16 +40,34 @@
         };
         //responses
         var listOfCommands = "Welcome to Knowledge 18! Feel free to wander around and I will let you know what you see.\n\nTry things like:\nmove forward, face north, turn left, say hello, take item, look closer, items, coordinates";
+        var helloGreeting = "Hello there! Say help to learn more about what you can do here. If you are trying to talk to other people, you have to indicate so. You will know if someone is nearby to talk to when you move around";
         var responses = {
-            "hello": 'Hello there! Say help to learn more about what you can do here. If you are trying to talk to other people, you have to indicate so. You will know if someone is nearby to talk to when you move around',
-            "hi": 'Hi there! if you are trying to talk to other people, you have to indicate so',
+            "hello": helloGreeting,
+            "hi": helloGreeting,
             "hello dm": "Hello PC!",
             "hello dungeon master": "Hello dungeon person",
             "help me": listOfCommands,
             "help": listOfCommands,
             "commands": listOfCommands,
             "how are you": "Quite well, thank you.",
-            "howdy": "There's a snake in my boot!"
+            "howdy": "There's a snake in my boot!",
+            "pee": "This is a demo and we never told you that there was a bladder guage. Regardless, you are relieved.",
+            "go pee": "This is a demo and we never told you that there was a bladder guage. Regardless, you are relieved.",
+            "shoot": "No violence in the demo please.",
+            "punch": "No violence in the demo please.",
+            "stab": "No violence in the demo please.",
+            "dance": "Unce unce unce unce unce.",
+            "hey": helloGreeting,
+            "talk": "Try Say, whisper, scream, or shout",
+            "test": "This whole thing is literally a test!",
+            "jump": "You jumped. Neat!",
+            "Start": listOfCommands,
+            "gg": "no re",
+            "bye": "Thanks for dropping by!",
+            "goodbye": "Thanks for dropping by!",
+            "punch wall": "Your had now hurts, why such aggression?",
+            "climb wall": "You are pretty good at climbing! You climb up, look around, realize there isn't anything interesting up here, and you climb back down",
+            "gamble": "I mean... we ARE in Vegas, but you're pretty busy at the conference. Maybe later."
         };
         //movement
         var moves = {
