@@ -37,7 +37,27 @@
             sendComment(winner);
             sendComment(winner2);
         }
-        grScore.u_score = 10;
+        var time_one = new GlideDateTime(current.sys_created_on+'');
+        var time_two = new GlideDateTime(gr.sys_created_on+'');
+        var time_complete;
+        if (time_one < time_two) {
+            time_complete = GlideDateTime.subtract(time_one, time_two);
+        } else {
+            time_complete = GlideDateTime.subtract(time_two, time_one);
+        }
+        var gdt = new GlideDateTime(time_complete);
+
+        var years = ((parseInt(gdt.getValue().substring(0, 4)) - 1970) * 31557600);
+        var months = ((parseInt(gdt.getValue().substring(5, 7)) - 1) * 2592000);
+        var days = ((parseInt(gdt.getValue().substring(8, 10)) - 1) * 86400);
+        var hours = (parseInt(gdt.getValue().substring(11, 13)) * 3600);
+        var minutes = (parseInt(gdt.getValue().substring(14, 16)) * 60);
+        var seconds = (parseInt(gdt.getValue().substring(17, 19)));
+        var final_score = years + months + days + hours + minutes + seconds;
+
+
+        grScore.u_score = final_score;
+
         grScore.insert();
     }
 
